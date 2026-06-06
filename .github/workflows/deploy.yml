@@ -1,0 +1,74 @@
+# This workflow will do a clean installation of node dependencies, cache/restore them, build the source code and run tests across different versions of node
+# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-nodejs
+
+name: Compile All Cloak Sites
+
+on:
+  push:
+    branches: [ "main" ]
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version: [18.x, 20.x, 22.x]
+        # See supported Node.js release schedule at https://nodejs.org/en/about/releases/
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: Use Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ matrix.node-version }}
+        cache: 'npm'
+
+    - name: Process and Build Sites
+      run: |
+        mkdir -p output
+
+        for dir in [0-9]*/; do
+          dir=${dir%/}
+          echo "----------------------------------------"
+          echo "Processing directory: $dir"
+          echo "----------------------------------------"
+
+          # Создаем целевую папку внутри output
+          mkdir -p "output/$dir"
+
+          if [ -f "$dir/package.json" ]; then
+            echo "$dir has package.json. Starting Node.js build..."
+
+            cd "$dir"
+            npm ci
+            # Запусти сборку. Если твои проекты собираются в другую папку (не dist), подправь команду ниже
+            npm run build
+            cd ..
+
+            # Копируем содержимое скомпилированной папки (dist) в output
+            if [ -d "$dir/dist" ]; then
+              cp -r "$dir/dist/." "output/$dir/"
+            elif [ -d "$dir/build" ]; then
+              cp -r "$dir/build/." "output/$dir/"
+            else
+              echo "Error: Build folder (dist or build) not found for $dir"
+              exit 1
+            fi
+          else
+            echo "$dir is a static HTML site. Copying files directly..."
+            # Если сборщик не нужен, просто копируем все файлы (кроме скрытых)
+            cp -r "$dir/." "output/$dir/"
+          fi
+        done
+
+    - name: Deploy to Build Branch
+      uses: JamesIves/github-pages-deploy-action@v4
+      with:
+        folder: output
+        branch: build
+        clean: true
