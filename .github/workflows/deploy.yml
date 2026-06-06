@@ -29,42 +29,52 @@ jobs:
 
     - name: Process and Build Sites
       run: |
+        shopt -s nullglob
+
+        # 1. Создаем временную папку для финального результата
         mkdir -p output
 
-        for dir in [0-9]*/; do
+        # Собираем все подходящие папки в массив
+        dirs=([0-9]*/)
+
+        # Проверяем, нашли ли мы вообще папки с заглушками
+        if [ ${#dirs[@]} -eq 0 ]; then
+          echo "⚠️ Warning: No directories matching [0-9]*/ found!"
+          echo "Make sure you have pushed folders like '001-xxx' with files inside."
+        fi
+
+        # 2. Цикл по массиву папок
+        for dir in "${dirs[@]}"; do
           dir=${dir%/}
           echo "----------------------------------------"
           echo "Processing directory: $dir"
           echo "----------------------------------------"
 
-          # Создаем целевую папку внутри output
           mkdir -p "output/$dir"
 
           if [ -f "$dir/package.json" ]; then
             echo "$dir has package.json. Starting Node.js build..."
-
             cd "$dir"
             npm ci
-            # Запусти сборку. Если твои проекты собираются в другую папку (не dist), подправь команду ниже
             npm run build
             cd ..
 
-            # Копируем содержимое скомпилированной папки (dist) в output
             if [ -d "$dir/dist" ]; then
               cp -r "$dir/dist/." "output/$dir/"
             elif [ -d "$dir/build" ]; then
               cp -r "$dir/build/." "output/$dir/"
             else
-              echo "Error: Build folder (dist or build) not found for $dir"
+              echo "❌ Error: Build folder (dist or build) not found for $dir"
               exit 1
             fi
           else
             echo "$dir is a static HTML site. Copying files directly..."
-            # Если сборщик не нужен, просто копируем все файлы (кроме скрытых)
-            cp -r "$dir/." "output/$dir/"
+            # Защита: копируем файлы, только если папка не пустая
+            if [ "$(ls -A "$dir")" ]; then
+              cp -r "$dir"/. "output/$dir/"
+            fi
           fi
         done
-
     - name: Deploy to Build Branch
       uses: JamesIves/github-pages-deploy-action@v4
       with:
