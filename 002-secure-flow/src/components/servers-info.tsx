@@ -1,4 +1,3 @@
-import type { Languages } from "@/types"
 import {
   Collapsible,
   CollapsibleContent,

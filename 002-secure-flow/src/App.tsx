@@ -91,7 +91,6 @@ export function App() {
         <FileForm language={language} />
         <Features language={language} />
         <ServersInfo
-          language={language}
           servers={serversData.data}
           totalOnline={serversData.totalOnline}
         />
