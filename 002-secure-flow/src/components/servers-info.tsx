@@ -44,11 +44,9 @@ function ServerCard({
 }
 
 function ServersInfo({
-  language,
   totalOnline,
   servers,
 }: {
-  language: Languages
   totalOnline: number
   servers: Record<
     string,

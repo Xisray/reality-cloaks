@@ -220,7 +220,7 @@ function FileForm({ language }: { language: Languages }) {
                   language
                 ]
               }
-              onValueChange={setSelectedFormat}
+              onValueChange={(v) => setSelectedFormat(v ?? "")}
             >
               <SelectTrigger className="w-full">
                 <SelectValue />
